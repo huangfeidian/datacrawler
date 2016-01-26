@@ -10,21 +10,17 @@ import selenium.webdriver.support.ui as ui
 from selenium.webdriver.common.action_chains import ActionChains
 from time import sleep
 from random import choice
+from string import split,digits
 import re
 #import pickle
 
 browser = webdriver.Firefox() # �򿪹ȸ�������
 wait = ui.WebDriverWait(browser,10)
-
-browser.get("http://s.weibo.cn/")
+total_pages=0;
+browser.get("http://weibo.cn/")
 
 def login(username,password):
-
-    #wait.until(lambda browser: browser.find_element_by_xpath("//a[@node-type='loginBtn']"))
-    #browser.find_element_by_xpath("//a[@node-type='loginBtn']").click()
-    ##sleep(5)
-    ##wait.until(lambda browser: browser.find_element_by_xpath("//a[@node-type='login_tab']"))
-    ##browser.find_element_by_xpath("//a[@node-type='login_tab']").click()
+    browser.find_element_by_link_text("登录").click()
     wait.until(lambda browser: browser.find_element_by_xpath("//input[@name='mobile']"))
     user = browser.find_element_by_xpath("//input[@name='mobile']")
     user.clear()
@@ -32,22 +28,26 @@ def login(username,password):
     psw = browser.find_element_by_xpath("//input[@type='password']")
     psw.clear()
     psw.send_keys(password)
+    verify_code= browser.find_element_by_xpath("//input[@name='code']")
+    if(verify_code):
+        sleep(10)
     wait.until(lambda browser: browser.find_element_by_xpath("//input[@name='submit']"))
     browser.find_element_by_xpath("//input[@name='submit']").click()
     sleep(3);
     browser.save_screenshot("code.png")
+    
     #browser.find_element_by_xpath("//input[@name='submit']").click()
 
 
 def search(searchWord):
+    browser.get("http://weibo.cn/")
+    wait.until(lambda browser: browser.find_element_by_xpath("//input[@name='keyword']"))
     
-    wait.until(lambda browser: browser.find_element_by_class_name("gn_name"))
-    
-    inputBtn = browser.find_element_by_class_name("searchInp_form")
+    inputBtn = browser.find_element_by_xpath("//input[@name='keyword']")
     inputBtn.clear()
-    inputBtn.send_keys(searchWord.strip().decode("gbk"))
+    inputBtn.send_keys(searchWord.strip().decode("utf-8"))
     #inputBtn.send_keys("С���ֻ�".strip().decode("gbk"))
-    browser.find_element_by_class_name('searchBtn').click()
+    browser.find_element_by_xpath("//input[@name='smblog']").click()
     
     #wait.until(lambda browser: browser.find_element_by_class_name("search_num"))
 
@@ -63,10 +63,31 @@ def gettext():
         except re.error:
             highpoints = re.compile(u'[\uD800-\uDBFF][\uDC00-\uDFFF]')
         mytext =  highpoints.sub(u'', n.text)
-        print mytext.encode("gbk")
+        print mytext.encode("utf-8")
         content.append(mytext.encode("utf-8"))
     return content
-    
+def iterate_page():
+    global total_pages
+    wait.until(lambda browser: browser.find_element_by_xpath("//div[@id='pagelist']/form/div"))
+    pages=browser.find_element_by_xpath("//div[@id='pagelist']/form/div")
+    print pages.text;
+    nums=0;
+    for i in split(split(pages.text)[1],'/')[1]:
+        if(i in digits):
+            nums=nums*10+int(i)
+        else:
+            break;
+    print nums;
+    for i in range(1,nums):
+        wait.until(lambda browser: browser.find_element_by_xpath("//div[@id='pagelist']/form/div/input[2]"))
+        the_page=browser.find_element_by_xpath("//div[@id='pagelist']/form/div/input[2]")
+        the_page.clear();
+        the_page.send_keys(str(i));
+        browser.find_element_by_xpath("//div[@id='pagelist']/form/div/input[3]").click();
+        total_pages+=1;
+        #if total_pages%10==0:
+        print total_pages;
+        sleep(15);
 def nextPage():
     #wait.until(lambda browser: browser.find_element_by_class_name("search_page_M"))
     if browser.find_elements_by_xpath("//ul[@class='search_page_M']") != None:
@@ -81,12 +102,9 @@ def nextPage():
 def main():
 
     login("huangfeidian@live.cn","10311010")
-    #search("佟丽娅")
-    #text =[]
-    #for i in range(0,10):
-    #    text=text +gettext()
-    #    sleep(choice([1,2,3,4]))
-    #    nextPage()         
-    #print len(text)
-    
+    while True:
+        search("佟丽娅")
+        iterate_page();
+
+
 main()
