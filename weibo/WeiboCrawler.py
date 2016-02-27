@@ -15,7 +15,7 @@ import re
 #import pickle
 browser = webdriver.Firefox() # �򿪹ȸ�������
 wait = ui.WebDriverWait(browser,10)
-out_file=codecs.open("weibo_test.json","w","utf-8");
+normal_output_file=open("normal.json","w");
 total_pages = 0
 browser.get("http://weibo.cn/")
 
@@ -65,70 +65,73 @@ def parse_time(today,weibo_ct):
 	return None;
 	
 
-def search(searchWord):
-    browser.get("http://weibo.cn/")
-    wait.until(lambda browser: browser.find_element_by_xpath("//input[@name='keyword']"))
+#def search(searchWord):
+#    browser.get("http://weibo.cn/")
+#    wait.until(lambda browser: browser.find_element_by_xpath("//input[@name='keyword']"))
     
-    inputBtn = browser.find_element_by_xpath("//input[@name='keyword']")
-    inputBtn.clear()
-    inputBtn.send_keys(searchWord.strip().decode("utf-8"))
-    #inputBtn.send_keys("С���ֻ�".strip().decode("gbk"))
-    browser.find_element_by_xpath("//input[@name='smblog']").click()
+#    inputBtn = browser.find_element_by_xpath("//input[@name='keyword']")
+#    inputBtn.clear()
+#    inputBtn.send_keys(searchWord.strip().decode("utf-8"))
+#    #inputBtn.send_keys("С���ֻ�".strip().decode("gbk"))
+#    browser.find_element_by_xpath("//input[@name='smblog']").click()
     
-    #wait.until(lambda browser:
-    #browser.find_element_by_class_name("search_num"))
+#    #wait.until(lambda browser:
+#    #browser.find_element_by_class_name("search_num"))
 
-#texts = browser.find_elements_by_xpath("//dl[@class='feed_list W_linecolor
-#']/dd[@class='content']/p[@node-type='feed_list_content']/em")
-def search_gettext():
-    content = []
-    wait.until(lambda browser: browser.find_element_by_class_name("search_page_M"))
-    texts = browser.find_elements_by_xpath("//dl[@action-type='feed_list_item']/dd[@class='content']/p[@node-type='feed_list_content']/em")
-    #print len(texts)
-    for n in texts:
-        try:
-            highpoints = re.compile(u'[\U00010000-\U0010ffff]')
-        except re.error:
-            highpoints = re.compile(u'[\uD800-\uDBFF][\uDC00-\uDFFF]')
-        mytext = highpoints.sub(u'', n.text)
-        print mytext.encode("utf-8")
-        content.append(mytext.encode("utf-8"))
-    return content
+##texts = browser.find_elements_by_xpath("//dl[@class='feed_list W_linecolor
+##']/dd[@class='content']/p[@node-type='feed_list_content']/em")
+#def search_gettext():
+#    content = []
+#    wait.until(lambda browser: browser.find_element_by_class_name("search_page_M"))
+#    texts = browser.find_elements_by_xpath("//dl[@action-type='feed_list_item']/dd[@class='content']/p[@node-type='feed_list_content']/em")
+#    #print len(texts)
+#    for n in texts:
+#        try:
+#            highpoints = re.compile(u'[\U00010000-\U0010ffff]')
+#        except re.error:
+#            highpoints = re.compile(u'[\uD800-\uDBFF][\uDC00-\uDFFF]')
+#        mytext = highpoints.sub(u'', n.text)
+#        print mytext.encode("utf-8")
+#        content.append(mytext.encode("utf-8"))
+#    return content
 
-def search_iterate_page():
-    global total_pages
-    wait.until(lambda browser: browser.find_element_by_xpath("//div[@id='pagelist']/form/div"))
-    pages = browser.find_element_by_xpath("//div[@id='pagelist']/form/div")
-    print pages.text
-    nums = 0
-    for i in split(split(pages.text)[1],'/')[1]:
-        if(i in digits):
-            nums = nums * 10 + int(i)
-        else:
-            break
-    print nums
-    for i in range(1,nums):
-        wait.until(lambda browser: browser.find_element_by_xpath("//div[@id='pagelist']/form/div/input[2]"))
-        the_page = browser.find_element_by_xpath("//div[@id='pagelist']/form/div/input[2]")
-        the_page.clear()
-        the_page.send_keys(str(i))
-        browser.find_element_by_xpath("//div[@id='pagelist']/form/div/input[3]").click()
-        total_pages+=1
-        #if total_pages%10==0:
-        print total_pages
-        sleep(15)
-def search_nextPage():
-    #wait.until(lambda browser:
-    #browser.find_element_by_class_name("search_page_M"))
-    if browser.find_elements_by_xpath("//ul[@class='search_page_M']") != None:
-        nums = len(browser.find_elements_by_xpath("//ul[@class='search_page_M']/li"))
-        #browser.execute_script("window.scrollTo(0, 7100)")
-        pg = browser.find_element_by_xpath("//ul[@class='search_page_M']/li[%d]/a" % nums) #.text.encode("gbk")
-        y = pg.location['y'] + 100
-        print y
-        browser.execute_script('window.scrollTo(0, {0})'.format(y))        
-        ActionChains(browser).move_to_element(pg).click(pg).perform()
-
+#def search_iterate_page():
+#    global total_pages
+#    wait.until(lambda browser: browser.find_element_by_xpath("//div[@id='pagelist']/form/div"))
+#    pages = browser.find_element_by_xpath("//div[@id='pagelist']/form/div")
+#    print pages.text
+#    nums = 0
+#    for i in split(split(pages.text)[1],'/')[1]:
+#        if(i in digits):
+#            nums = nums * 10 + int(i)
+#        else:
+#            break
+#    print nums
+#    for i in range(1,nums):
+#        wait.until(lambda browser: browser.find_element_by_xpath("//div[@id='pagelist']/form/div/input[2]"))
+#        the_page = browser.find_element_by_xpath("//div[@id='pagelist']/form/div/input[2]")
+#        the_page.clear()
+#        the_page.send_keys(str(i))
+#        browser.find_element_by_xpath("//div[@id='pagelist']/form/div/input[3]").click()
+#        total_pages+=1
+#        #if total_pages%10==0:
+#        print total_pages
+#        sleep(15)
+#def search_nextPage():
+#    #wait.until(lambda browser:
+#    #browser.find_element_by_class_name("search_page_M"))
+#    if browser.find_elements_by_xpath("//ul[@class='search_page_M']") != None:
+#        nums = len(browser.find_elements_by_xpath("//ul[@class='search_page_M']/li"))
+#        #browser.execute_script("window.scrollTo(0, 7100)")
+#        pg = browser.find_element_by_xpath("//ul[@class='search_page_M']/li[%d]/a" % nums) #.text.encode("gbk")
+#        y = pg.location['y'] + 100
+#        print y
+#        browser.execute_script('window.scrollTo(0, {0})'.format(y))        
+#        ActionChains(browser).move_to_element(pg).click(pg).perform()
+def next_page():
+	next_page_short_url=browser.find_element_by_link_text(u"下页").get_attribute("href");
+	return "http://weibo.cn"+next_page_short_url;
+	
 def get_weibo_self_page():
 	#获得当前登陆用户某个页面的所有微博
 	result=[];
@@ -224,12 +227,42 @@ def get_weibo_user_lately(user_home,last_time):
 		except:
 			print "next page doesn't exists"
 			break;
-		
+def get_real_homepage(user_home):
+	#从用户的主页获得用户的个人uid的url
+	user_info=browser.find_element_by_link_text(u"资料");
+	#/xxxxxx/info the xxxx is unique user id
+	info_url=user_info.get_attribute("href");
+	user_id=info_url.split("/")[1];
+	return "http://webo.cn/"+user_id;
+
+
+def get_follower_user(user_home):
+	browser.get(user_home);
+	follow_short_url=browser.find_element_by_xpath("//div[@class='tip2']/a[1]");
+	follow_full_url="http://weibo.cn"+follow_short_url;
+	follow_url_set=set();
+	while follow_full_url!=None:
+		fo_url_this_page=browser.get(follow_full_url);
+		for url in fo_url_this_page:
+			follow_url_set.add(url);
+
+
+def get_follower_page(follow_page):
+	browser.get(follow_page);
+	followers_in_page=browser.find_elements_by_xpath("//table/tbody/tr/td[1]/a");
+	fo_url_in_page=[];
+	for i in followers_in_page:
+		temp_url=i.get_attribute("href");
+		fo_url_in_page.append(temp_url);
+	# it may not be the unique id 
+	return fo_url_in_page;
+	
 def main():
-	#login("huangfeidian@live.cn","10311010")
+	login("huangfeidian@live.cn","10311010")
 	#browser.get("http://weibo.cn/")
-	browser.get("http://weibo.cn/xiaomishouji")
-	the_weibo_list=get_weibo_user_page("http://weibo.cn/xiaomishouji");
+	#browser.get("http://weibo.cn/xiaomishouji")
+	#the_weibo_list=get_weibo_user_page("http://weibo.cn/xiaomishouji");
+	the_fo_list=get_follower_page("http://weibo.cn/2202387347/follow");
 	#weibo_objects=[];
 	#for i in the_weibo_list:
 	#	weibo_objects.append(weibo(i));
@@ -237,6 +270,6 @@ def main():
 	#for i in weibo_objects:
 	#	weibo_strings.append(i.get_json_dict());
 	#json_result=json.dumps(weibo_strings);
-	json_result=json.dumps(the_weibo_list);
-	out_file.write(json_result);
+	json_result=json.dumps(the_fo_list);
+	normal_output_file.write(json_result);
 main()
