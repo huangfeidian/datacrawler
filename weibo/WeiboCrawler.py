@@ -15,9 +15,9 @@ import re
 #import pickle
 browser = webdriver.Firefox() # �򿪹ȸ�������
 wait = ui.WebDriverWait(browser,10)
-normal_output_file=open("weibo_cookie.json","w");
+cookie_file=open("weibo_cookie.json","r");
 total_pages = 0
-browser.get("http://weibo.cn/")
+#browser.get("http://weibo.cn/")
 
 def login(username,password):
     browser.find_element_by_link_text("登录").click()
@@ -272,12 +272,18 @@ def get_follower_page(follow_page):
 	return follower_in_page;
 	
 def main():
-	login("huangfeidian@live.cn","10311010")
-	cookie=list(browser.get_cookies());
+	#browser.get("http://weibo.cn/");
+	#login("huangfeidian@live.cn","10311010")
+	browser.get("http://weibo.cn/404page");
+	cookie_str=join(cookie_file.readlines(),"\n");
+	cookie=json.loads(cookie_str);
+	for i in cookie:
+		browser.add_cookie(i);
+	browser.get("http://weibo.cn/");
 	#browser.get("http://weibo.cn/")
 	#browser.get("http://weibo.cn/xiaomishouji")
 	#the_weibo_list=get_weibo_user_page("http://weibo.cn/xiaomishouji");
-	last_time=datetime.today();
+	#last_time=datetime.today();
 	#the_fo_list=get_weibo_user_lately("http://weibo.cn/xiaomishouji",last_time);
 	#weibo_objects=[];
 	#for i in the_weibo_list:
@@ -286,6 +292,7 @@ def main():
 	#for i in weibo_objects:
 	#	weibo_strings.append(i.get_json_dict());
 	#json_result=json.dumps(weibo_strings);
-	json_result=json.dumps(cookie);
-	normal_output_file.write(json_result);
+	#cookie=list(browser.get_cookies());
+	#json_result=json.dumps(cookie);
+	#cookie_file.write(json_result);
 main()
