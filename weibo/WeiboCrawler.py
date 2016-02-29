@@ -6,16 +6,16 @@ import selenium.webdriver.support.ui as ui
 from selenium.webdriver.common.action_chains import ActionChains
 from time import sleep
 from datetime import datetime,time
-from weibo import weibo
+from weibo import weibo_weibo
 from random import choice
-from string import split,digits
+from string import split,digits,join
 import codecs
 import json
 import re
 #import pickle
 browser = webdriver.Firefox() # �򿪹ȸ�������
 wait = ui.WebDriverWait(browser,10)
-normal_output_file=open("normal.json","w");
+normal_output_file=open("weibo_cookie.json","w");
 total_pages = 0
 browser.get("http://weibo.cn/")
 
@@ -57,7 +57,9 @@ def parse_time(today,weibo_ct):
 
 	if(time_stamp.find(u"月")!=-1):
 		#处理的是既往的微博
-		temp_datetime=datetime.strptime(time_stamp,u"%m月%d日 %H:%M ");
+		temp_str=time_stamp.replace(u"月","-");
+		temp_str=temp_str.replace(u"日","");
+		temp_time=datetime.strptime(temp_str,"%m-%d %H:%M ");
 		the_date=temp_time.date().replace(year=2016);
 		result_datetime=datetime.combine(the_date,temp_time.time());
 		return result_datetime
@@ -129,9 +131,12 @@ def parse_time(today,weibo_ct):
 #        browser.execute_script('window.scrollTo(0, {0})'.format(y))        
 #        ActionChains(browser).move_to_element(pg).click(pg).perform()
 def next_page():
-	next_page_short_url=browser.find_element_by_link_text(u"下页").get_attribute("href");
-	return "http://weibo.cn"+next_page_short_url;
-	
+	try:
+		next_page_short_url=browser.find_element_by_link_text(u"下页").get_attribute("href");
+		return next_page_short_url;
+	except:
+		return None;
+
 def get_weibo_self_page():
 	#获得当前登陆用户某个页面的所有微博
 	result=[];
@@ -155,16 +160,20 @@ def get_weibo_self_page():
 		weibo_dict["author"]=weibo_author.get_attribute("href");
 		weibo_span=weibo_body.find_element_by_xpath(".//span[@class='ctt']");
 		weibo_dict["text"]=weibo_span.text;
-		print weibo_id+"\t"+weibo_text;
+		#print weibo_id+"\t"+weibo_text;
 		weibo_ct=single_weibo.find_element_by_xpath(".//div/span[@class='ct']").text;
-		print weibo_ct;
+		#print weibo_ct;
 		time_stamp=parse_time(today,weibo_ct);
 		if(time_stamp):
-			weibo_dict["datetime"]=time_stamp;
+			#weibo_dict["datetime"]=time_stamp;
+			weibo_dict["datetime"]=time_stamp.strftime("%Y-%m-%d %H:%M:%S");
 			result.append(weibo_dict);
 
 	return result;
-def get_weibo_user_page(user_home):
+def get_cookie_str():
+	cookies= "; ".join([item["name"] + "=" + item["value"] for item in browser.get_cookies()]);
+def get_weibo_user_page(user_page):
+	#获得特定用户的某个页面的微博
 	result=[];
 	useless_weibo_num=0;
 	today=datetime.today();
@@ -192,77 +201,84 @@ def get_weibo_user_page(user_home):
 			weibo_num_in_page-=0;
 		weibo_dict={};
 		weibo_dict["id"]=weibo_id;
-		weibo_dict["author"]=user_home;
+		weibo_dict["author"]=user_page;
 		weibo_text=weibo_body.find_element_by_xpath(".//span[@class='ctt']").text;
 		weibo_dict["text"]=unicode(weibo_text);
-		print weibo_id+"\t"+weibo_text;
+		#print weibo_id+"\t"+weibo_text;
 		weibo_ct=single_weibo.find_element_by_xpath(".//div/span[@class='ct']").text;
-		print weibo_ct;
-		result.append(weibo_dict);
-		#time_stamp=parse_time(today,weibo_ct);
-		#if(time_stamp):
-		#	weibo_dict["datetime"]=time_stamp;
-		#	result.append(weibo_dict);
-		#else:
-		#	weibo_num_in_page-=1;
+		#print weibo_ct;
+		
+		time_stamp=parse_time(today,weibo_ct);
+		if(time_stamp):
+			#weibo_dict["datetime"]=time_stamp;
+			weibo_dict["datetime"]=time_stamp.strftime("%Y-%m-%d %H:%M:%S");
+			result.append(weibo_dict);
+		else:
+			weibo_num_in_page-=1;
 	return result;
 def get_weibo_user_lately(user_home,last_time):
-
 	current_page=user_home;
-	continue_condition=True;
-	while continue_condition:
-		page_result=get_weibo_user_page(user_home);
-		if len(page_result)==0:
-			continue;
-		else:
-			if page_result[0]["datetime"]<last_time:
-				#第一条微博的时间就超过了上一条微博的时间的话，则不再需要处理
-				break;
-			else:
-				json_result=json.dumps(page_result);
-				out_file.write(json_result);
-		try:
-			next_page=browser.find_element_by_link_text(u"下页");
-			next_page.click();
-		except:
-			print "next page doesn't exists"
+	total_weibo=[];
+	while current_page!=None:
+		browser.get(current_page);
+		page_result=get_weibo_user_page(current_page);
+		#if len(page_result)==0:
+		#	continue;
+		#else:
+		#	if page_result[0]["datetime"]<last_time:
+		#		#第一条微博的时间就超过了上一条微博的时间的话，则不再需要处理
+		#		break;
+		#	else:
+		#		total_weibo.extend(page_result);
+		total_weibo.extend(page_result);
+		if(len(total_weibo)>=200):
 			break;
+		current_page=next_page();
+	return total_weibo;
 def get_real_homepage(user_home):
 	#从用户的主页获得用户的个人uid的url
-	user_info=browser.find_element_by_link_text(u"资料");
-	#/xxxxxx/info the xxxx is unique user id
-	info_url=user_info.get_attribute("href");
-	user_id=info_url.split("/")[1];
-	return "http://webo.cn/"+user_id;
+	follow_url=browser.find_element_by_link_text(u"关注").get_attribute("href");
+	#/xxxxxx/follow the xxxx is unique user id
+	user_id=join(info_url.split("/")[0:-1],"/");
+	return user_id;
 
 
 def get_follower_user(user_home):
 	browser.get(user_home);
-	follow_short_url=browser.find_element_by_xpath("//div[@class='tip2']/a[1]");
-	follow_full_url="http://weibo.cn"+follow_short_url;
-	follow_url_set=set();
-	while follow_full_url!=None:
-		fo_url_this_page=browser.get(follow_full_url);
+	follow_url=browser.find_element_by_xpath("//div[@class='tip2']/a[1]").get_attribute("href");
+	
+	follow_url_list=list();
+	while follow_url!=None:
+		fo_url_this_page=get_follower_page(follow_url);
 		for url in fo_url_this_page:
-			follow_url_set.add(url);
-
+			follow_url_list.append(url);
+		follow_url=next_page();
+	return follow_url_list;
 
 def get_follower_page(follow_page):
 	browser.get(follow_page);
-	followers_in_page=browser.find_elements_by_xpath("//table/tbody/tr/td[1]/a");
-	fo_url_in_page=[];
+	followers_in_page=browser.find_elements_by_xpath("//table/tbody/tr/td[2]");
+	follower_in_page=[];
 	for i in followers_in_page:
-		temp_url=i.get_attribute("href");
-		fo_url_in_page.append(temp_url);
+		temp_user=dict();
+		temp_user["home"]=i.find_element_by_xpath(".//a[1]").get_attribute("href");
+		temp_user["nick"]=i.find_element_by_xpath(".//a[1]").text;
+		fan_string=i.text;
+		fan_num_list=join(filter((lambda x : x in digits),list(fan_string)),"");
+		fan_num_int=int(fan_num_list);
+		temp_user["fan_num"]=fan_num_int;
+		follower_in_page.append(temp_user);
 	# it may not be the unique id 
-	return fo_url_in_page;
+	return follower_in_page;
 	
 def main():
 	login("huangfeidian@live.cn","10311010")
+	cookie=list(browser.get_cookies());
 	#browser.get("http://weibo.cn/")
 	#browser.get("http://weibo.cn/xiaomishouji")
 	#the_weibo_list=get_weibo_user_page("http://weibo.cn/xiaomishouji");
-	the_fo_list=get_follower_page("http://weibo.cn/2202387347/follow");
+	last_time=datetime.today();
+	#the_fo_list=get_weibo_user_lately("http://weibo.cn/xiaomishouji",last_time);
 	#weibo_objects=[];
 	#for i in the_weibo_list:
 	#	weibo_objects.append(weibo(i));
@@ -270,6 +286,6 @@ def main():
 	#for i in weibo_objects:
 	#	weibo_strings.append(i.get_json_dict());
 	#json_result=json.dumps(weibo_strings);
-	json_result=json.dumps(the_fo_list);
+	json_result=json.dumps(cookie);
 	normal_output_file.write(json_result);
 main()

@@ -1,7 +1,7 @@
 ﻿# -*- coding: utf-8 -*-
 from json import *
 from datetime import datetime
-class weibo:
+class weibo_weibo:
 	def __init__(self):
 		self.datetime=None;
 		self.timetext=None;
