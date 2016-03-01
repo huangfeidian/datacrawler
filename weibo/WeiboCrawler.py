@@ -9,11 +9,10 @@ from datetime import datetime,time
 from weibo import weibo_weibo
 from random import choice
 from string import split,digits,join
-import codecs
 import json
-import re
-#import pickle
-browser = webdriver.Firefox() # �򿪹ȸ�������
+from lxml import html,etree
+import requests
+browser = webdriver.Firefox() 
 wait = ui.WebDriverWait(browser,10)
 cookie_file=open("weibo_cookie.json","r");
 total_pages = 0

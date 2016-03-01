@@ -3,15 +3,15 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>6d96a37e-9911-4e11-aaac-153f4eb5eb50</ProjectGuid>
+    <ProjectGuid>9954f631-e330-46b0-a105-f4fc5efc1dea</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>WeiboCrawler.py</StartupFile>
+    <StartupFile>json_test.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
-    <Name>weibo</Name>
-    <RootNamespace>weibo</RootNamespace>
+    <Name>json_test</Name>
+    <RootNamespace>json_test</RootNamespace>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -22,11 +22,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="weibo.py" />
-    <Compile Include="WeiboCrawler.py" />
-    <Compile Include="weibo_user.py">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="json_test.py" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
