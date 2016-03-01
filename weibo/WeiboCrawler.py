@@ -69,13 +69,11 @@ def parse_time(today,weibo_ct):
 #def search(searchWord):
 #    browser.get("http://weibo.cn/")
 #    wait.until(lambda browser: browser.find_element_by_xpath("//input[@name='keyword']"))
-    
 #    inputBtn = browser.find_element_by_xpath("//input[@name='keyword']")
 #    inputBtn.clear()
 #    inputBtn.send_keys(searchWord.strip().decode("utf-8"))
 #    #inputBtn.send_keys("С���ֻ�".strip().decode("gbk"))
 #    browser.find_element_by_xpath("//input[@name='smblog']").click()
-    
 #    #wait.until(lambda browser:
 #    #browser.find_element_by_class_name("search_num"))
 
@@ -236,8 +234,8 @@ def get_weibo_user_lately(user_home,last_time):
 	return total_weibo;
 def get_real_homepage(user_home):
 	#从用户的主页获得用户的个人uid的url
-	follow_url=browser.find_element_by_link_text(u"关注").get_attribute("href");
-	#/xxxxxx/follow the xxxx is unique user id
+	info_url=browser.find_element_by_link_text(u"资料").get_attribute("href");
+	#/xxxxxx/info the xxxx is unique user id
 	user_id=join(info_url.split("/")[0:-1],"/");
 	return user_id;
 
