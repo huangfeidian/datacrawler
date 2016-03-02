@@ -39,10 +39,10 @@ def login(username,password):
 def parse_time(today,weibo_ct):
 	time_stamp=weibo_ct.split(u"来自")[0];
 	if(time_stamp.find(u"年")!=-1):
-		#不是今年的不要
+		#如果有年的话，基本可以确认是去年及以前的了，直接忽略
 		return None;
 	if(time_stamp.startswith(u"今天")):
-		#处理的是今天的微博
+		#处理的是今天的发表时间
 		index=0;
 		while(time_stamp[index] not in digits):
 			index+=1;
@@ -50,17 +50,15 @@ def parse_time(today,weibo_ct):
 		while(time_stamp[index]!=' '):
 			time_str+=time_stamp[index];
 			index+=1;
-		time_today=datetime.strptime(time_str,u"%H:%M").time();
+		time_today=datetime.strptime(time_str,"%H:%M").time();
 		result_time=datetime.combine(today,time_today);
 		return result_time;
-
 	if(time_stamp.find(u"月")!=-1):
 		#处理的是既往的微博
 		temp_str=time_stamp.replace(u"月","-");
 		temp_str=temp_str.replace(u"日","");
-		temp_time=datetime.strptime(temp_str,"%m-%d %H:%M ");
-		the_date=temp_time.date().replace(year=2016);
-		result_datetime=datetime.combine(the_date,temp_time.time());
+		temp_str=u"2016-"+temp_str;
+		result_datetime=datetime.strptime(temp_str,"%Y-%m-%d %H:%M ");
 		return result_datetime
 	#剩下的就是那种22分钟前 5秒前之类的 我们不处理
 	return None;

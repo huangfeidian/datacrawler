@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import requests
-from string import join
+from string import join,digits
 from lxml import html
 from datetime import datetime
 from time import sleep
@@ -13,6 +13,7 @@ class request_session:
 		self.ss_cookie=None;
 		self.user_url=None;
 		self.user=None;
+		self.domain=u"http://weibo.cn";
 		self.ss_referer="http://www.baidu.com";
 
 		self.ss=requests.Session();
@@ -30,12 +31,12 @@ class request_session:
 		self.user=in_user;
 
 	def parse_time(self,today,weibo_ct):
-		time_stamp=weibo_ct.split(u"À´×Ô")[0];
-		if(time_stamp.find("Äê")!=-1):
-			#²»ÊÇ½ñÄêµÄ²»Òª
+		time_stamp=weibo_ct.split(u"æ¥è‡ª")[0];
+		if(time_stamp.find(u"å¹´")!=-1):
+			#å¦‚æœæœ‰å¹´çš„è¯ï¼ŒåŸºæœ¬å¯ä»¥ç¡®è®¤æ˜¯å»å¹´åŠä»¥å‰çš„äº†ï¼Œç›´æ¥å¿½ç•¥
 			return None;
-		if(time_stamp.startswith("½ñÌì")):
-			#´¦ÀíµÄÊÇ½ñÌìµÄÎ¢²©
+		if(time_stamp.startswith(u"ä»Šå¤©")):
+			#å¤„ç†çš„æ˜¯ä»Šå¤©çš„å‘è¡¨æ—¶é—´
 			index=0;
 			while(time_stamp[index] not in digits):
 				index+=1;
@@ -46,9 +47,19 @@ class request_session:
 			time_today=datetime.strptime(time_str,"%H:%M").time();
 			result_time=datetime.combine(today,time_today);
 			return result_time;
+		if(time_stamp.find(u"æœˆ")!=-1):
+			#å¤„ç†çš„æ˜¯æ—¢å¾€çš„å¾®åš
+			temp_str=time_stamp.replace(u"æœˆ","-");
+			temp_str=temp_str.replace(u"æ—¥","");
+			temp_str=u"2016-"+temp_str;
+			result_datetime=datetime.strptime(temp_str,"%Y-%m-%d %H:%M ");
+			return result_datetime
+		#å‰©ä¸‹çš„å°±æ˜¯é‚£ç§22åˆ†é’Ÿå‰ 5ç§’å‰ä¹‹ç±»çš„ æˆ‘ä»¬ä¸å¤„ç†
+		return None;
 	def get_weibo_self_page(self,content,page_url):
+		#ä»å½“å‰ç™»å½•ç”¨æˆ·çš„é¡µé¢ä¸­è·å¾—å¾®åš
 		tree=html.fromstring(content);
-		#»ñµÃµ±Ç°µÇÂ½ÓÃ»§Ä³¸öÒ³ÃæµÄËùÓĞÎ¢²©
+		
 		result=[];
 		useless_weibo_num=0;
 		today=datetime.today();
@@ -63,7 +74,7 @@ class request_session:
 			weibo_body=single_weibo.xpath(".//div[1]")[0];
 		
 			weibo_cmt=weibo_body.xpath(".//span[@class='cmt']");
-			#Èç¹ûÓöµ½×ª·¢µÄÎ¢²©£¬Ö±½ÓºöÂÔ
+			#å¦‚æœæ˜¯è½¬å‘ï¼Œåˆ™ç›´æ¥å¿½ç•¥
 			if(len(weibo_cmt)!=0):
 				#print "a comment here"
 				continue;
@@ -72,7 +83,7 @@ class request_session:
 			weibo_span=weibo_body.xpath(".//span[@class='ctt']")[0];
 			weibo_dict["text"]=weibo_span.text;
 			#print weibo_id+"\t"+weibo_text;
-			weibo_ct=single_weibo.xpath(".//div/span[@class='ct']")[0].text;
+			weibo_ct=single_weibo.xpath(".//div/span[@class='ct']")[0].text.replace(u"\xa0"," ");
 			#result.append(weibo_dict);
 			#print weibo_ct;
 			time_stamp=parse_time(today,weibo_ct);
@@ -84,14 +95,16 @@ class request_session:
 		return result;
 
 	def next_page(self,content):
-		next_page=content.xpath(".//a[text()='ÏÂÒ³']");
+		#æ³¨æ„çš„æ˜¯lxmlä¸ä¼šå¯¹/abc/efgè¿™ç±»çš„åœ°å€ç›´æ¥åŠ ä¸Šå½“å‰åŸŸåï¼Œæ‰€ä»¥æˆ‘ä»¬éœ€è¦æ‰‹åŠ¨æ“ä½œ
+		#æ‰‹åŠ¨åŠ ä¸Š"weibo.cn
+		next_page=content.xpath(u".//a[text()='ä¸‹é¡µ']");
 		if(len(next_page)==0):
 			return None;
 		else:
-			return next_page[0].get("href");
+			return self.domain+next_page[0].get("href");
 
 	def get_weibo_user_page(self,content,user_home):
-	#»ñµÃÌØ¶¨ÓÃ»§µÄÄ³¸öÒ³ÃæµÄÎ¢²©
+		#è·å¾—æŸä¸ªç”¨æˆ·çš„æŸä¸ªé¡µé¢çš„æ‰€æœ‰å¾®åš
 		result=[];
 		useful_weibo_num=0;
 		today=datetime.today();
@@ -103,11 +116,11 @@ class request_session:
 			weibo_body=single_weibo.xpath(".//div[1]")[0];
 
 			weibo_kt=weibo_body.xpath(".//span[@class='kt']");
-			#Ô½¹ıÖÃ¶¥
+			#è·³è¿‡ç½®é¡¶
 			if(len(weibo_kt)!=0):
 				continue;
 			weibo_cmt=weibo_body.xpath(".//span[@class='cmt']");
-			#Ô½¹ı×ª·¢
+			#è·³è¿‡è½¬å‘
 			if(len(weibo_cmt)!=0):
 				continue;
 
@@ -117,7 +130,7 @@ class request_session:
 			weibo_text=weibo_body.xpath(".//span[@class='ctt']")[0].text;
 			weibo_dict["text"]=weibo_text;
 			#print weibo_id+"\t"+weibo_text;
-			weibo_ct=single_weibo.xpath(".//div/span[@class='ct']")[0].text;
+			weibo_ct=single_weibo.xpath(".//div/span[@class='ct']")[0].text.replace(u"\xa0"," ");
 			#print weibo_ct;
 			
 			time_stamp=self.parse_time(today,weibo_ct);
@@ -132,7 +145,8 @@ class request_session:
 		current_page=user_home;
 		total_weibo=[];
 		while current_page!=None:
-			sleep(0.5);
+			sleep(0.4);
+			print "get page ",current_page;
 			response=self.ss.get(current_page);
 			content=html.fromstring(response.content);
 			page_result=self.get_weibo_user_page(content,user_home);
@@ -140,31 +154,32 @@ class request_session:
 			#	continue;
 			#else:
 			#	if page_result[0]["datetime"]<last_time:
-			#		#µÚÒ»ÌõÎ¢²©µÄÊ±¼ä¾Í³¬¹ıÁËÉÏÒ»ÌõÎ¢²©µÄÊ±¼äµÄ»°£¬Ôò²»ÔÙĞèÒª´¦Àí
+			#		#??Ò»??Î¢????Ê±???Í³???????Ò»??Î¢????Ê±???Ä»???????????Òª????
 			#		break;
 			#	else:
 			#		total_weibo.extend(page_result);
 			total_weibo.extend(page_result);
-			if(len(total_weibo)>=200):
+			if(len(total_weibo)>=100):
 				break;
 			current_page=self.next_page(content);
 		return total_weibo;
 	def get_real_homepage(self,user_home):
-		#´ÓÓÃ»§µÄÖ÷Ò³»ñµÃÓÃ»§µÄ¸öÈËuidµÄurl
+		#ç”±ç”¨æˆ·çš„ä¸»é¡µè·å¾—ç”¨æˆ·çš„uidä¸»é¡µ
 		response=self.ss.get(current_page);
 		content=html.fromstring(response.content);
-		info_url=content.xpath(".//a[text()='×ÊÁÏ']")[0].get("href");
-		#/xxxxxx/follow the xxxx is unique user id
+		info_url=self.domain+content.xpath(u".//a[text()=u'èµ„æ–™']")[0].get("href");
+		#/xxxxxx/info the xxxx is unique user id
 		user_id=join(info_url.split("/")[0:-1],"/");
 		return user_id;
 
 	def get_follower_page(self,content,follow_page):
+		#è·å¾—æŸä¸ªç”¨æˆ·çš„æŸä¸ªå…³æ³¨ç•Œé¢çš„æ‰€æœ‰å…³æ³¨å¯¹è±¡çš„url
 		followers_in_page=content.xpath("//table/tbody/tr/td[2]");
 		follower_in_page=[];
 		for i in followers_in_page:
 			temp_user=dict();
 			temp_element=i.xpath(".//a[1]")[0]
-			temp_user["home"]=temp_element.get("href");
+			temp_user["home"]=self.domain+ temp_element.get("href");
 			temp_user["nick"]=temp_element.text;
 			fan_string=i.text;
 			fan_num_list=join(filter((lambda x : x in digits),list(fan_string)),"");
@@ -174,9 +189,10 @@ class request_session:
 		# it may not be the unique id 
 		return follower_in_page;
 	def get_follower_user(self,user_home):
+		#è·å¾—æŸä¸ªç”¨æˆ·çš„å…³æ³¨åˆ—è¡¨ï¼Œweiboæœ€å¤šè¿”å›200ä¸ª
 		response=self.ss.get(user_home);
 		content=html.fromstring(response.content);
-		follow_url=content.xpath("//div[@class='tip2']/a[1]")[0].get("href");
+		follow_url=self.domain+content.xpath("//div[@class='tip2']/a[1]")[0].get("href");
 		follow_url_list=list();
 		while follow_url!=None:
 			response=self.ss.get(follow_url);
