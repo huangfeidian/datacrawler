@@ -9,6 +9,10 @@ Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "json_test", "json_test\json
 EndProject
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "request_test", "request_test\request_test.pyproj", "{CC04450B-FCED-4E89-B5FE-3F5940C3FDF6}"
 EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "lxml_test", "lxml_test\lxml_test.pyproj", "{9D8FE68E-2D03-4296-A9DE-F5897225B1E1}"
+EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "smtp_test", "smtp_test\smtp_test.pyproj", "{790754FD-1AD1-4C7C-B010-418F2D519933}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +25,10 @@ Global
 		{9954F631-E330-46B0-A105-F4FC5EFC1DEA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CC04450B-FCED-4E89-B5FE-3F5940C3FDF6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CC04450B-FCED-4E89-B5FE-3F5940C3FDF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9D8FE68E-2D03-4296-A9DE-F5897225B1E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9D8FE68E-2D03-4296-A9DE-F5897225B1E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{790754FD-1AD1-4C7C-B010-418F2D519933}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{790754FD-1AD1-4C7C-B010-418F2D519933}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

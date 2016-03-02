@@ -127,7 +127,9 @@ class request_session:
 			weibo_dict={};
 			weibo_dict["id"]=weibo_id;
 			weibo_dict["author"]=user_home;
-			weibo_text=weibo_body.xpath(".//span[@class='ctt']")[0].text;
+			#weibo_text=weibo_body.xpath(".//span[@class='ctt']")[0].text;
+			weibo_ctt=weibo_body.xpath(".//span[@class='ctt']")[0];
+			weibo_text=unicode(weibo_ctt.xpath("string()"));
 			weibo_dict["text"]=weibo_text;
 			#print weibo_id+"\t"+weibo_text;
 			weibo_ct=single_weibo.xpath(".//div/span[@class='ct']")[0].text.replace(u"\xa0"," ");
