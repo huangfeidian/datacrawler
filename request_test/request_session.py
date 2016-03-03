@@ -6,6 +6,11 @@ from lxml import html
 from datetime import datetime
 from time import sleep
 import codecs
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+import traceback
 class request_session:
 	def __init__(self):
 		self.ss_proxy=None;
@@ -20,6 +25,7 @@ class request_session:
 		self.response=None;
 		self.get_real_homepage=None;
 		self.ss=requests.Session();
+		self.smtp163=smtplib.SMTP();
 
 	def set_ss_config(self,ss_cfg_dict):
 		self.ss_proxy=ss_cfg_dict["proxy"];
@@ -30,6 +36,25 @@ class request_session:
 		self.ss.proxies=self.ss_proxy;
 		self.ss.headers=self.ss_header;
 
+	def set_log_config(self,log_config):
+		self.email_from_addr=log_config["from_addr"];
+		self.email_to_addr=log_config["to_addr"];
+		self.email_from_passwd=log_config["from_passwd"];
+		self.email_smtp_addr=log_config["smtp_addr"];
+		self.email_smtp_port=log_config["smtp_port"];
+	def send_email_log(self):
+		self.smtp163.connect(self.email_smtp_addr,self.email_smtp_port);
+		self.smtp163.login(self.email_from_addr,self.email_from_passwd);
+		msg=MIMEMultipart();
+		msg["To"]=self.email_to_addr;
+		msg["Subject"]="exception from "+self.user.name+datetime.now().strftime("%Y-%m-%d %H:%M:%S");
+		msg["From"]=self.email_from_addr;
+		attachment==MIMEText(self.content,"base64","utf-8");
+		attachment["Content-Type"]="application/octet-stream";
+		attachment["Content-Disposition"]="attachment; filename=\"content.xml\"" 
+		exception_msg=MIMEText(traceback.format_exc());
+		msg.attach(attachment);
+		msg.attach(exception_msg);
 	def set_user(self,in_user):
 		self.user=in_user;
 
