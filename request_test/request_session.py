@@ -15,7 +15,10 @@ class request_session:
 		self.user=None;
 		self.domain=u"http://weibo.cn";
 		self.ss_referer="http://www.baidu.com";
-
+		self.content=None;
+		self.cur_link=None;
+		self.response=None;
+		self.get_real_homepage=None;
 		self.ss=requests.Session();
 
 	def set_ss_config(self,ss_cfg_dict):
@@ -56,14 +59,17 @@ class request_session:
 			return result_datetime
 		#剩下的就是那种22分钟前 5秒前之类的 我们不处理
 		return None;
-	def get_weibo_self_page(self,content,page_url):
+	def get_page(self,page_link):
+		self.cur_link=page_link;
+		response=self.ss.get(self.cur_link);
+		self.content=response.content;
+		self.tree=html.fromstring(self.content);
+	def get_weibo_self_page(self):
 		#从当前登录用户的页面中获得微博
-		tree=html.fromstring(content);
-		
 		result=[];
 		useless_weibo_num=0;
 		today=datetime.today();
-		all_weibo_in_page = tree.xpath("//div[@class='c'][@id]");
+		all_weibo_in_page = self.tree.xpath("//div[@class='c'][@id]");
 		weibo_num_in_page=len(all_weibo_in_page);
 		print "the num of weibo in this page is ",weibo_num_in_page;
 		for single_weibo in all_weibo_in_page:
@@ -94,21 +100,21 @@ class request_session:
 		#print "useful num is ",len(result);
 		return result;
 
-	def next_page(self,content):
+	def next_page(self):
 		#注意的是lxml不会对/abc/efg这类的地址直接加上当前域名，所以我们需要手动操作
 		#手动加上"weibo.cn
-		next_page=content.xpath(u".//a[text()='下页']");
+		next_page=self.tree.xpath(u".//a[text()='下页']");
 		if(len(next_page)==0):
 			return None;
 		else:
 			return self.domain+next_page[0].get("href");
 
-	def get_weibo_user_page(self,content,user_home):
+	def get_weibo_user_page(self,user_home):
 		#获得某个用户的某个页面的所有微博
 		result=[];
 		useful_weibo_num=0;
 		today=datetime.today();
-		all_weibo_in_page = content.xpath("//div[@class='c'][@id]")
+		all_weibo_in_page = self.tree.xpath("//div[@class='c'][@id]")
 		weibo_num_in_page=len(all_weibo_in_page);
 		print "the num of weibo in this page is ",weibo_num_in_page;
 		for single_weibo in all_weibo_in_page:
@@ -147,36 +153,34 @@ class request_session:
 		current_page=user_home;
 		total_weibo=[];
 		while current_page!=None:
-			sleep(0.4);
+			sleep(0.5);
 			print "get page ",current_page;
-			response=self.ss.get(current_page);
-			content=html.fromstring(response.content);
-			page_result=self.get_weibo_user_page(content,user_home);
+			self.get_page(current_page);
+			page_result=self.get_weibo_user_page(user_home);
 			#if len(page_result)==0:
 			#	continue;
 			#else:
 			#	if page_result[0]["datetime"]<last_time:
-			#		#??һ??΢????ʱ???ͳ???????һ??΢????ʱ???Ļ???????????Ҫ????
+			#		#忽略时间比上一次记录晚的微博
 			#		break;
 			#	else:
 			#		total_weibo.extend(page_result);
 			total_weibo.extend(page_result);
-			if(len(total_weibo)>=100):
+			if(len(total_weibo)>=10):
 				break;
-			current_page=self.next_page(content);
+			current_page=self.next_page();
 		return total_weibo;
 	def get_real_homepage(self,user_home):
 		#由用户的主页获得用户的uid主页
-		response=self.ss.get(current_page);
-		content=html.fromstring(response.content);
-		info_url=self.domain+content.xpath(u".//a[text()=u'资料']")[0].get("href");
+		self.get_page(user_home);
+		info_url=self.domain+self.tree.xpath(u".//a[text()=u'资料']")[0].get("href");
 		#/xxxxxx/info the xxxx is unique user id
 		user_id=join(info_url.split("/")[0:-1],"/");
 		return user_id;
 
-	def get_follower_page(self,content,follow_page):
+	def get_follower_page(self):
 		#获得某个用户的某个关注界面的所有关注对象的url
-		followers_in_page=content.xpath("//table/tbody/tr/td[2]");
+		followers_in_page=self.tree.xpath("//table/tbody/tr/td[2]");
 		follower_in_page=[];
 		for i in followers_in_page:
 			temp_user=dict();
@@ -192,25 +196,23 @@ class request_session:
 		return follower_in_page;
 	def get_follower_user(self,user_home):
 		#获得某个用户的关注列表，weibo最多返回200个
-		response=self.ss.get(user_home);
-		content=html.fromstring(response.content);
-		follow_url=self.domain+content.xpath("//div[@class='tip2']/a[1]")[0].get("href");
+		self.get_page(user_home);
+		follow_url=self.domain+self.tree.xpath("//div[@class='tip2']/a[1]")[0].get("href");
 		follow_url_list=list();
 		while follow_url!=None:
-			response=self.ss.get(follow_url);
-			content=html.fromstring(response.content);
-			fo_url_this_page=self.get_follower_page(content,follow_url);
+			self.get_page(follow_url);
+			fo_url_this_page=self.get_follower_page(follow_url);
 			for url in fo_url_this_page:
 				follow_url_list.append(url);
-			follow_url=self.next_page(content);
+			follow_url=self.next_page();
 		return follow_url_list;
 
 
 def main():
 
 	proxies = {
-		"http": "http://huangfeidian:10311010@127.0.0.1:1898",
-		"https": "http://huangfeidian:10311010@127.0.0.1:1898",
+		#"http": "http://huangfeidian:10311010@127.0.0.1:1898",
+		#"https": "http://huangfeidian:10311010@127.0.0.1:1898",
 		};
 	headers={
 		"User-Agent":"Mozilla/5.0 (Windows NT 6.3; WOW64; rv:44.0) Gecko/20100101 Firefox/44.0",
@@ -231,7 +233,7 @@ def main():
 	# 	s.cookies.set(cookie["name"],cookie["value"],domain=cookie["domain"],path=cookie["path"]);
 	result=session.get_weibo_user_lately("http://weibo.cn/xiaomishouji","hehe");
 	response_file=codecs.open("respons.json","w","utf-8");
-	weibo_result=json.dumps(result);
+	weibo_result=json.dumps(result,ensure_ascii=False);
 
 	#page_raw=codecs.open("raw_res.html","w","utf-8");
 	#page_raw.write(r.text);
