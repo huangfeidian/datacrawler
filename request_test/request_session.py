@@ -3,7 +3,7 @@ import json
 import requests
 from string import join,digits
 from lxml import html
-from datetime import datetime
+from datetime import datetime,timedelta
 from time import sleep
 import codecs
 import smtplib
@@ -11,44 +11,87 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 import traceback
+import os
 class request_session:
 	def __init__(self):
 		self.ss_proxy=None;
 		self.ss_header=None;
 		self.ss_cookie=None;
-		self.user_url=None;
+		self.user_name=None;
 		self.user=None;
 		self.domain=u"http://weibo.cn";
 		self.ss_referer="http://www.baidu.com";
 		self.content=None;
 		self.cur_link=None;
 		self.response=None;
+		self.weibo_result=None;
 		self.weibo_total_num=0;
 		self.weibo_lately_num=0;
-		self.get_real_homepage=None;
+		self.user_homepage=None;
+		self.last_log_time=None;
+		self.user_data=dict();
 		self.ss=requests.Session();
 		self.smtp163=smtplib.SMTP();
 
-	def set_ss_config(self,ss_cfg_dict):
-		self.ss_proxy=ss_cfg_dict["proxy"];
-		self.ss_cookie=ss_cfg_dict["cookie"];
-		self.ss_header=ss_cfg_dict["header"];
+	def set_ss_config(self,session_config):
+		self.ss_proxy=session_config["proxy"];
+		self.ss_cookie=session_config["cookie"];
+		self.ss_header=session_config["header"];
+
 		for cookie in self.ss_cookie:
 			self.ss.cookies.set(cookie["name"],cookie["value"],domain=cookie["domain"],path=cookie["path"]);
 		self.ss.proxies=self.ss_proxy;
 		self.ss.headers=self.ss_header;
-
+	def set_email_config(self,email_config):
+		self.email_from_addr=email_config["from_addr"];
+		self.email_to_addr=email_config["to_addr"];
+		self.email_from_passwd=email_config["from_passwd"];
+		self.email_smtp_addr=email_config["smtp_addr"];
+		self.email_smtp_port=email_config["smtp_port"];
 	def set_log_config(self,log_config):
-		self.email_from_addr=log_config["from_addr"];
-		self.email_to_addr=log_config["to_addr"];
-		self.email_from_passwd=log_config["from_passwd"];
-		self.email_smtp_addr=log_config["smtp_addr"];
-		self.email_smtp_port=log_config["smtp_port"];
+		self.user_name=log_config["user_name"];
+		if(not os.path.exists(self.user_name)):
+			os.mkdir(self.user_name);
+		self.weibo_total_num=log_config["total_num"];
+		self.last_log_time=datetime.now();
+	def set_user_log(self,user_log):
+		for i in user_log:
+			self.user_data[i]=dict();
+			self.user_data[i]["timestamp"]=datetime.strptime(user_log[i]["timestamp"],"%Y-%m-%d %H:%M:%S");
+			self.user_data[i]["weibo_num"]=user_log[i]["weibo_num"];
+	def save_routine(self):
+		# 保存每个user 的log 和所有user的统计log
+		
+		#要把时间转换为字符串
+		translated_data=dict();
+
+		for i in self.user_data:
+			translated_data[i]=dict();
+			translated_data[i]["weibo_num"]=self.user_data[i]["weibo_num"];
+			translated_data[i]["timestamp"]=self.user_data[i]["timestamp"].strftime(("%Y-%m-%d %H:%M:%S"))
+		user_data_str=json.dumps(translated_data,ensure_ascii=False);
+
+		user_file_name="user_log "+datetime.now().strftime(("%Y-%m-%d %H-%M-%S"))+".json";
+		log_data=dict();
+		log_data["user_name"]=self.user_name;
+		log_data["weibo_total_num"]=self.weibo_total_num;
+		log_data["log_time"]=self.last_log_time;
+		log_data["user_file"]=user_file_name;
+		log_data_str=json.dumps(log_data,ensure_ascii=False);
+		os.chdir(self.user_name);
+		
+		user_file=open(user_file_name,"w");
+		user_file.write(user_data_str);
+		user_file.close();
+		log_file_name=self.user_name+".json";
+		log_file=open(config_file_name,"w");
+		log_file.write(log_data_str);
+		log_file.close();
 
 	def send_email_except(self):
 		msg=MIMEMultipart();
 		msg["To"]=self.email_to_addr;
-		msg["Subject"]="exception from "+self.user.name+datetime.now().strftime("%Y-%m-%d %H:%M:%S");
+		msg["Subject"]="exception from "+self.user_name+" "+datetime.now().strftime("%Y-%m-%d %H-%M-%S");
 		msg["From"]=self.email_from_addr;
 		attachment==MIMEText(self.content,"base64","utf-8");
 		attachment["Content-Type"]="application/octet-stream";
@@ -65,10 +108,11 @@ class request_session:
 			dumpfile=open(msg["Subject"],"w");
 			dumpfile.write(msg.as_string());
 			dumpfile.close();
+
 	def send_email_log(self):
 		msg=MIMEMultipart();
 		msg["To"]=self.email_to_addr;
-		msg["Subject"]="log from "+self.user.name+datetime.now().strftime("%Y-%m-%d %H:%M:%S");
+		msg["Subject"]="log from "+self.user_name+" "+datetime.now().strftime("%Y-%m-%d %H-%M-%S");
 		msg["From"]=self.email_from_addr;
 		log_msg_str="total weibo num is "+str(self.weibo_total_num)+"weibo lately num is "+str(self.weibo_lately_num);
 		self.weibo_lately_num=0;
@@ -199,6 +243,7 @@ class request_session:
 			if(time_stamp):
 				#weibo_dict["datetime"]=time_stamp;
 				weibo_dict["datetime"]=time_stamp.strftime("%Y-%m-%d %H:%M:%S");
+				weibo_dict["timestamp"]=time_stamp;
 				result.append(weibo_dict);
 				useful_weibo_num+=1;
 		return result;
@@ -211,14 +256,14 @@ class request_session:
 			print "get page ",current_page;
 			self.get_page(current_page);
 			page_result=self.get_weibo_user_page(user_home);
-			#if len(page_result)==0:
-			#	continue;
-			#else:
-			#	if page_result[0]["datetime"]<last_time:
-			#		#忽略时间比上一次记录晚的微博
-			#		break;
-			#	else:
-			#		total_weibo.extend(page_result);
+			if len(page_result)==0:
+				continue;
+			else:
+				if page_result[0]["datetime"]<last_time:
+					#忽略时间比上一次记录晚的微博
+					break;
+				else:
+					total_weibo.extend(page_result);
 			total_weibo.extend(page_result);
 			if(len(total_weibo)>=10):
 				break;
@@ -260,7 +305,35 @@ class request_session:
 				follow_url_list.append(url);
 			follow_url=self.next_page();
 		return follow_url_list;
+	def filter_user_weibo(self,user_home,weibo_batch):
+		result=[];
+		last_time=self.user_data[user_home];
+		filter_result=[i for  i in weibo_batch and i["timestamp"]>last_time];
+		this_time=last_time;
+		for i in filter_result:
+			if(i["timestamp"]>this_time):
+				this_time=i["timestamp"];
+		self.user_data[user_home]=this_time;
+		self.user_weibo_num[user_home]+=len(filter_result);
+		return filter_result;
 
+	def update_weibo_result(self,weibo_batch):
+		new_batch_len=len(weibo_batch);
+		self.weibo_lately_num+=new_batch_len;
+		self.weibo_total_num+=new_batch_len;
+		self.weibo_result.extend(weibo_batch);
+		os.chdir(self.user_name);
+		while(len(self.weibo_result)>100):
+			file_name=datetime.now().strftime("%Y-%m-%d %H-%M-%S")+".json";
+			output_file=open(file_name,"w");
+			the_data=self.weibo_result[0:100];
+			self.weibo_result=self.weibo_result[100:];
+			output_file.write(json.dumps(the_data,ensure_ascii=False));
+			output_file.close();
+		this_log_time=datetime.now();
+		time_1_hour=timedelta(hours=1.0);
+		if(this_log_time-last_log_time>time_1_hour):
+			#TO-DO
 
 def main():
 
