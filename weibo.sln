@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "weibo", "weibo\weibo.pyproj", "{6D96A37E-9911-4E11-AAAC-153F4EB5EB50}"
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "selenium_test", "weibo\selenium_test.pyproj", "{6D96A37E-9911-4E11-AAAC-153F4EB5EB50}"
 EndProject
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "json_test", "json_test\json_test.pyproj", "{9954F631-E330-46B0-A105-F4FC5EFC1DEA}"
 EndProject
