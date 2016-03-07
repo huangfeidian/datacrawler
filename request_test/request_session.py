@@ -33,9 +33,9 @@ class request_session:
 		self.ss=requests.Session();
 		self.smtp163=smtplib.SMTP();
 
-	def set_ss_config(self,session_config):
-		self.ss.proxies=session_config["proxy"];
-		self.ss.headers=session_config["header"];
+	def set_ss_config(self,proxy,header):
+		self.ss.proxies=proxy;
+		self.ss.headers=header;
 
 
 	def set_email_config(self,email_config):
