@@ -14,86 +14,68 @@ import traceback
 import os
 class request_session:
 	def __init__(self):
-		self.ss_proxy=None;
-		self.ss_header=None;
-		self.ss_cookie=None;
-		self.user_name=None;
-		self.user=None;
+
+		self.worker_cookie=None;
+		self.worker_name=None;
+		self.worker_homepage=None;
 		self.domain=u"http://weibo.cn";
 		self.ss_referer="http://www.baidu.com";
-		self.content=None;
-		self.cur_link=None;
-		self.response=None;
+		self.ss_content=None;
+		self.ss_cur_link=None;
+
 		self.weibo_result=None;
 		self.weibo_total_num=0;
 		self.weibo_lately_num=0;
-		self.user_homepage=None;
 		self.last_log_time=None;
+		self.updated_number=0;
+
 		self.user_data=dict();
 		self.ss=requests.Session();
 		self.smtp163=smtplib.SMTP();
 
 	def set_ss_config(self,session_config):
-		self.ss_proxy=session_config["proxy"];
-		self.ss_cookie=session_config["cookie"];
-		self.ss_header=session_config["header"];
+		self.ss.proxies=session_config["proxy"];
+		self.ss.headers=session_config["header"];
 
-		for cookie in self.ss_cookie:
-			self.ss.cookies.set(cookie["name"],cookie["value"],domain=cookie["domain"],path=cookie["path"]);
-		self.ss.proxies=self.ss_proxy;
-		self.ss.headers=self.ss_header;
+
 	def set_email_config(self,email_config):
 		self.email_from_addr=email_config["from_addr"];
 		self.email_to_addr=email_config["to_addr"];
 		self.email_from_passwd=email_config["from_passwd"];
 		self.email_smtp_addr=email_config["smtp_addr"];
 		self.email_smtp_port=email_config["smtp_port"];
-	def set_log_config(self,log_config):
-		self.user_name=log_config["user_name"];
-		if(not os.path.exists(self.user_name)):
-			os.mkdir(self.user_name);
-		self.weibo_total_num=log_config["total_num"];
+
+	def set_log_config(self,worker_config):
+		self.worker_name=worker_config["worker_name"];
+		self.worker_homepage=worker_config["worker_homepage"];
+		if(not os.path.exists(self.worker_name)):
+			os.mkdir(self.worker_name);
+		self.worker_cookie=worker_config["cookie"];
+		for cookie in self.worker_cookie:
+			self.ss.cookies.set(cookie["name"],cookie["value"],domain=cookie["domain"],
+					   path=cookie["path"]);
+		self.weibo_total_num=worker_config["total_num"];
 		self.last_log_time=datetime.now();
-	def set_user_log(self,user_log):
+		user_file_name=worker_config["user_file"];
+		os.chdir(self.worker_name);
+		user_file=open(user_file_name,"r");
+		user_file_str=join(user_file.readlines(),"\n");
+		user_file.close();
+		os.chdir("..");
+
+		user_log=json.loads(user_file_str);
 		for i in user_log:
 			self.user_data[i]=dict();
 			self.user_data[i]["timestamp"]=datetime.strptime(user_log[i]["timestamp"],"%Y-%m-%d %H:%M:%S");
 			self.user_data[i]["weibo_num"]=user_log[i]["weibo_num"];
-	def save_routine(self):
-		# 保存每个user 的log 和所有user的统计log
-		
-		#要把时间转换为字符串
-		translated_data=dict();
-
-		for i in self.user_data:
-			translated_data[i]=dict();
-			translated_data[i]["weibo_num"]=self.user_data[i]["weibo_num"];
-			translated_data[i]["timestamp"]=self.user_data[i]["timestamp"].strftime(("%Y-%m-%d %H:%M:%S"))
-		user_data_str=json.dumps(translated_data,ensure_ascii=False);
-
-		user_file_name="user_log "+datetime.now().strftime(("%Y-%m-%d %H-%M-%S"))+".json";
-		log_data=dict();
-		log_data["user_name"]=self.user_name;
-		log_data["weibo_total_num"]=self.weibo_total_num;
-		log_data["log_time"]=self.last_log_time;
-		log_data["user_file"]=user_file_name;
-		log_data_str=json.dumps(log_data,ensure_ascii=False);
-		os.chdir(self.user_name);
-		
-		user_file=open(user_file_name,"w");
-		user_file.write(user_data_str);
-		user_file.close();
-		log_file_name=self.user_name+".json";
-		log_file=open(config_file_name,"w");
-		log_file.write(log_data_str);
-		log_file.close();
+			self.user_data[i]["nick"]=user_log[i]["nick"];
 
 	def send_email_except(self):
 		msg=MIMEMultipart();
 		msg["To"]=self.email_to_addr;
-		msg["Subject"]="exception from "+self.user_name+" "+datetime.now().strftime("%Y-%m-%d %H-%M-%S");
+		msg["Subject"]="exception from "+self.worker_name+" "+datetime.now().strftime("%Y-%m-%d %H-%M-%S");
 		msg["From"]=self.email_from_addr;
-		attachment==MIMEText(self.content,"base64","utf-8");
+		attachment==MIMEText(self.ss_content,"base64","utf-8");
 		attachment["Content-Type"]="application/octet-stream";
 		attachment["Content-Disposition"]="attachment; filename=\"content.xml\"" 
 		exception_msg=MIMEText(traceback.format_exc());
@@ -112,7 +94,7 @@ class request_session:
 	def send_email_log(self):
 		msg=MIMEMultipart();
 		msg["To"]=self.email_to_addr;
-		msg["Subject"]="log from "+self.user_name+" "+datetime.now().strftime("%Y-%m-%d %H-%M-%S");
+		msg["Subject"]="log from "+self.worker_name+" "+datetime.now().strftime("%Y-%m-%d %H-%M-%S");
 		msg["From"]=self.email_from_addr;
 		log_msg_str="total weibo num is "+str(self.weibo_total_num)+"weibo lately num is "+str(self.weibo_lately_num);
 		self.weibo_lately_num=0;
@@ -127,9 +109,46 @@ class request_session:
 			dumpfile=open(msg["Subject"],"w");
 			dumpfile.write(msg.as_string());
 			dumpfile.close();
+	def save_routine(self):
 
-	def set_user(self,in_user):
-		self.user=in_user;
+		os.chdir(self.worker_name);
+		# 保存每个user 的log 和所有user的统计log
+		
+		#要把时间转换为字符串
+		translated_data=dict();
+
+		for i in self.user_data:
+			translated_data[i]=dict();
+			translated_data[i]["weibo_num"]=self.user_data[i]["weibo_num"];
+			translated_data[i]["nick"]=self.user_data[i]["nick"];
+			translated_data[i]["timestamp"]=self.user_data[i]["timestamp"].strftime(("%Y-%m-%d %H:%M:%S"));
+
+		user_data_str=json.dumps(translated_data,ensure_ascii=False);
+		user_file_name="user_log "+datetime.now().strftime(("%Y-%m-%d %H-%M-%S"))+".json";
+		user_file=open(user_file_name,"w");
+		user_file.write(user_data_str);
+		user_file.close();
+
+		log_data=dict();
+		log_data["worker_name"]=self.worker_name;
+		log_data["weibo_total_num"]=self.weibo_total_num;
+		log_data["log_time"]=self.last_log_time;
+		log_data["worker_homepage"]=self.worker_homepage;
+
+		log_data["user_file"]=user_file_name;
+		log_data_str=json.dumps(log_data,ensure_ascii=False);
+		log_file_name=self.worker_name+".json";
+		log_file=open(config_file_name,"w");
+		log_file.write(log_data_str);
+		log_file.close();
+		os.chdir("..");
+		self.send_email_log();
+		#这个是自适应性的降低访问频率
+		#如果一个小时内收到的新微博数量小于100，则休眠15min
+		if(self.updated_number<100):
+			sleep(900);
+			self.updated_number=0;
+
 
 	def parse_time(self,today,weibo_ct):
 		time_stamp=weibo_ct.split(u"来自")[0];
@@ -157,11 +176,30 @@ class request_session:
 			return result_datetime
 		#剩下的就是那种22分钟前 5秒前之类的 我们不处理
 		return None;
+
+	def next_page(self):
+		#注意的是lxml不会对/abc/efg这类的地址直接加上当前域名，所以我们需要手动操作
+		#手动加上"weibo.cn
+		next_page=self.tree.xpath(u".//a[text()='下页']");
+		if(len(next_page)==0):
+			return None;
+		else:
+			return self.domain+next_page[0].get("href");
+
 	def get_page(self,page_link):
-		self.cur_link=page_link;
-		response=self.ss.get(self.cur_link);
-		self.content=response.content;
-		self.tree=html.fromstring(self.content);
+		sleep(0.5);
+		self.ss_cur_link=page_link;
+		response=self.ss.get(self.ss_cur_link);
+		self.ss_content=response.content;
+		self.tree=html.fromstring(self.ss_content);
+	def get_uid_url(self,user_home):
+		#由用户的主页获得用户的uid主页
+		self.get_page(user_home);
+		#这里是相对url
+		info_url=self.domain+self.tree.xpath(u".//a[text()=u'资料']")[0].get("href");
+		#/xxxxxx/info the xxxx is unique user id
+		user_id=join(info_url.split("/")[0:-1],"/");
+		return user_id;
 	def get_weibo_self_page(self):
 		#从当前登录用户的页面中获得微博
 		result=[];
@@ -197,16 +235,6 @@ class request_session:
 				result.append(weibo_dict);
 		#print "useful num is ",len(result);
 		return result;
-
-	def next_page(self):
-		#注意的是lxml不会对/abc/efg这类的地址直接加上当前域名，所以我们需要手动操作
-		#手动加上"weibo.cn
-		next_page=self.tree.xpath(u".//a[text()='下页']");
-		if(len(next_page)==0):
-			return None;
-		else:
-			return self.domain+next_page[0].get("href");
-
 	def get_weibo_user_page(self,user_home):
 		#获得某个用户的某个页面的所有微博
 		result=[];
@@ -247,12 +275,10 @@ class request_session:
 				result.append(weibo_dict);
 				useful_weibo_num+=1;
 		return result;
-
 	def get_weibo_user_lately(self,user_home,last_time):
 		current_page=user_home;
 		total_weibo=[];
 		while current_page!=None:
-			sleep(0.5);
 			print "get page ",current_page;
 			self.get_page(current_page);
 			page_result=self.get_weibo_user_page(user_home);
@@ -269,29 +295,25 @@ class request_session:
 				break;
 			current_page=self.next_page();
 		return total_weibo;
-	def get_real_homepage(self,user_home):
-		#由用户的主页获得用户的uid主页
-		self.get_page(user_home);
-		info_url=self.domain+self.tree.xpath(u".//a[text()=u'资料']")[0].get("href");
-		#/xxxxxx/info the xxxx is unique user id
-		user_id=join(info_url.split("/")[0:-1],"/");
-		return user_id;
+	
 
 	def get_follower_page(self):
 		#获得某个用户的某个关注界面的所有关注对象的url
+		#关注页面的url是绝对url，简直坑爹
 		followers_in_page=self.tree.xpath("//table/tbody/tr/td[2]");
 		follower_in_page=[];
 		for i in followers_in_page:
 			temp_user=dict();
-			temp_element=i.xpath(".//a[1]")[0]
-			temp_user["home"]=self.domain+ temp_element.get("href");
+			temp_element=i.xpath(".//a[1]")[0];
+			#其实这里的href可能已经是uid了，但是我不管了
+			temp_user["home"]=self.get_uid_url(temp_element.get("href"));
 			temp_user["nick"]=temp_element.text;
-			fan_string=i.text;
-			fan_num_list=join(filter((lambda x : x in digits),list(fan_string)),"");
-			fan_num_int=int(fan_num_list);
-			temp_user["fan_num"]=fan_num_int;
+			#fan_string=i.text;
+			#fan_num_list=join(filter((lambda x : x in digits),list(fan_string)),"");
+			#fan_num_int=int(fan_num_list);
+			#temp_user["fan_num"]=fan_num_int;
 			follower_in_page.append(temp_user);
-		# it may not be the unique id 
+		
 		return follower_in_page;
 	def get_follower_user(self,user_home):
 		#获得某个用户的关注列表，weibo最多返回200个
@@ -305,24 +327,17 @@ class request_session:
 				follow_url_list.append(url);
 			follow_url=self.next_page();
 		return follow_url_list;
-	def filter_user_weibo(self,user_home,weibo_batch):
-		result=[];
-		last_time=self.user_data[user_home];
-		filter_result=[i for  i in weibo_batch and i["timestamp"]>last_time];
-		this_time=last_time;
-		for i in filter_result:
-			if(i["timestamp"]>this_time):
-				this_time=i["timestamp"];
-		self.user_data[user_home]=this_time;
-		self.user_weibo_num[user_home]+=len(filter_result);
-		return filter_result;
 
 	def update_weibo_result(self,weibo_batch):
+		#将已经筛选好的weibo存储进来，并定量备份，定时log，
+		#这里设置为超过1小时就log
+		#超过100条微博就存文件
 		new_batch_len=len(weibo_batch);
+		self.updated_number+=new_batch_len;
 		self.weibo_lately_num+=new_batch_len;
 		self.weibo_total_num+=new_batch_len;
 		self.weibo_result.extend(weibo_batch);
-		os.chdir(self.user_name);
+		os.chdir(self.worker_name);
 		while(len(self.weibo_result)>100):
 			file_name=datetime.now().strftime("%Y-%m-%d %H-%M-%S")+".json";
 			output_file=open(file_name,"w");
@@ -332,8 +347,39 @@ class request_session:
 			output_file.close();
 		this_log_time=datetime.now();
 		time_1_hour=timedelta(hours=1.0);
-		if(this_log_time-last_log_time>time_1_hour):
-			#TO-DO
+		if(this_log_time-self.last_log_time>time_1_hour):
+			self.save_routine();
+			self.last_log_time=this_log_time;
+	def filter_user_weibo(self,user_home,weibo_batch):
+		#这里是针对一个用户的最近微博的抓取及过滤
+		#把时间在上次记录的最近时间之前的weibo过滤掉
+		last_time=self.user_data[user_home]["timestamp"];
+		filter_result=[i for  i in weibo_batch and i["timestamp"]>last_time];
+		this_time=last_time;
+		for i in filter_result:
+			if(i["timestamp"]>this_time):
+				this_time=i["timestamp"];
+		self.user_data[user_home]["timestamp"]=this_time;
+		self.user_data[user_home]["weibo_num"]+=len(filter_result);
+		self.update_weibo_result(filter_result);
+	def run(self):
+		try:
+			fo_list=self.get_follower_user(self.worker_homepage);
+			for i in fo_list:
+				#如果该用户不在记录中，则新建这个用户
+				if( i["home"] not in self.user_data):
+					self.user_data[i["home"]]=dict();
+					self.user_data[i["home"]]["timestamp"]=datetime(2016,1,1);
+					self.user_data[i["home"]]["weibo_num"]=0;
+					self.user_data[i["home"]]["nick"]=0;
+			while True:
+				for i in fo_list:
+					self.get_weibo_user_lately(i,self.user_data[i["home"]]["timestamp"]);
+		except:
+			self.send_email_except();
+			return ;
+	
+			
 
 def main():
 
