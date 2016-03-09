@@ -15,9 +15,7 @@ import os
 class request_session:
 	def __init__(self):
 
-		self.worker_cookie=None;
 		self.worker_name=None;
-		self.worker_homepage=None;
 		self.domain=u"http://weibo.cn";
 		self.ss_referer="http://www.baidu.com";
 		self.ss_content=None;
@@ -33,31 +31,34 @@ class request_session:
 		self.ss=requests.Session();
 		self.smtp163=smtplib.SMTP();
 
-	def set_ss_config(self,proxy,header):
+	def set_ss_config(self,proxy,header,cookies):
 		self.ss.proxies=proxy;
 		self.ss.headers=header;
-
-
+        for cookie in cookies:
+            self.ss.cookies.set(cookie["name"],cookie["value"],domain=cookie["domain"],path=cookie["path"]);
+            
 	def set_email_config(self,email_config):
 		self.email_from_addr=email_config["from_addr"];
 		self.email_to_addr=email_config["to_addr"];
 		self.email_from_passwd=email_config["from_passwd"];
 		self.email_smtp_addr=email_config["smtp_addr"];
 		self.email_smtp_port=email_config["smtp_port"];
-
-	def set_log_config(self,worker_config):
-		self.worker_name=worker_config["worker_name"];
-		self.worker_homepage=worker_config["worker_homepage"];
+	def set_log_config(self,worker_name):
+		self.worker_name=worker_name;
 		if(not os.path.exists(self.worker_name)):
 			os.mkdir(self.worker_name);
-		self.worker_cookie=worker_config["cookie"];
-		for cookie in self.worker_cookie:
-			self.ss.cookies.set(cookie["name"],cookie["value"],domain=cookie["domain"],
-					   path=cookie["path"]);
-		self.weibo_total_num=worker_config["total_num"];
-		self.last_log_time=datetime.now();
-		user_file_name=worker_config["user_file"];
-		os.chdir(self.worker_name);
+        os.chdir(self.worker_name);
+        #读取log文件，如果没有log则直接设置为空值
+        self.last_log_time=datetime.now();
+        log_file_name=self.worker_name+".json";
+        if(not os.path.exists(log_file_name)):
+            return;
+        log_file=open(log_file_name,"r");
+        log_file_str=join(log_file.readlines(),"\n");
+        log_file.close();
+        log_config=json.loads(log_file_str);
+		self.weibo_total_num=log_config["total_num"];
+		user_file_name=log_config["user_file"];
 		user_file=open(user_file_name,"r");
 		user_file_str=join(user_file.readlines(),"\n");
 		user_file.close();
@@ -133,7 +134,6 @@ class request_session:
 		log_data["worker_name"]=self.worker_name;
 		log_data["weibo_total_num"]=self.weibo_total_num;
 		log_data["log_time"]=self.last_log_time;
-		log_data["worker_homepage"]=self.worker_homepage;
 
 		log_data["user_file"]=user_file_name;
 		log_data_str=json.dumps(log_data,ensure_ascii=False);
@@ -327,7 +327,19 @@ class request_session:
 				follow_url_list.append(url);
 			follow_url=self.next_page();
 		return follow_url_list;
-
+	def get_self_follower(self):
+		#获得自己的关注列表
+		self.get_page("http://weibo.cn");
+        #其实就这里的a[2]与前面的a[1]不同
+		follow_url=self.domain+self.tree.xpath("//div[@class='tip2']/a[2]")[0].get("href");
+		follow_url_list=list();
+		while follow_url!=None:
+			self.get_page(follow_url);
+			fo_url_this_page=self.get_follower_page(follow_url);
+			for url in fo_url_this_page:
+				follow_url_list.append(url);
+			follow_url=self.next_page();
+		return follow_url_list;
 	def update_weibo_result(self,weibo_batch):
 		#将已经筛选好的weibo存储进来，并定量备份，定时log，
 		#这里设置为超过1小时就log
@@ -364,14 +376,14 @@ class request_session:
 		self.update_weibo_result(filter_result);
 	def run(self):
 		try:
-			fo_list=self.get_follower_user(self.worker_homepage);
+			fo_list=self.get_self_follower();
 			for i in fo_list:
 				#如果该用户不在记录中，则新建这个用户
 				if( i["home"] not in self.user_data):
 					self.user_data[i["home"]]=dict();
 					self.user_data[i["home"]]["timestamp"]=datetime(2016,1,1);
 					self.user_data[i["home"]]["weibo_num"]=0;
-					self.user_data[i["home"]]["nick"]=0;
+					self.user_data[i["home"]]["nick"]=None;
 			while True:
 				for i in fo_list:
 					self.get_weibo_user_lately(i,self.user_data[i["home"]]["timestamp"]);

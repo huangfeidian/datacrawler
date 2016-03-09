@@ -6,7 +6,8 @@
     <ProjectGuid>6d96a37e-9911-4e11-aaac-153f4eb5eb50</ProjectGuid>
     <ProjectHome>
     </ProjectHome>
-    <StartupFile>WeiboCrawler.py</StartupFile>
+    <StartupFile>
+    </StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -24,7 +25,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="weibo.py" />
-    <Compile Include="WeiboCrawler.py" />
     <Compile Include="weibo_user.py">
       <SubType>Code</SubType>
     </Compile>
