@@ -81,8 +81,11 @@ class request_session:
         attachment["Content-Type"]="application/octet-stream";
         attachment["Content-Disposition"]="attachment; filename=\"content.xml\"" 
         msg.attach(attachment);
-        exception_msg=MIMEText(traceback.format_exc());
+        exception_msg=MIMEText(traceback.format_exc(),"plain","utf-8");
         msg.attach(exception_msg);
+        dumpfile=codecs.open(msg["Subject"]+".eml","w","utf-8");
+        dumpfile.write(msg.as_string());
+        dumpfile.close();
         try:
             self.smtp163.connect(self.email_smtp_addr,self.email_smtp_port);
             self.smtp163.login(self.email_from_addr,self.email_from_passwd);
@@ -90,11 +93,6 @@ class request_session:
             self.smtp163.close();
             print self.worker_name+" sending exception email "+" success" 
         except:
-            exception_msg=MIMEText(traceback.format_exc());
-            msg.attach(exception_msg);
-            dumpfile=codecs.open(msg["Subject"]+".eml","w","utf-8");
-            dumpfile.write(msg.as_string());
-            dumpfile.close();
             print self.worker_name+" sending exception email  "+" failure"
 
     def send_email_log(self):
@@ -106,6 +104,9 @@ class request_session:
         self.weibo_lately_num=0;
         log_msg=MIMEText(log_msg_str);
         msg.attach(log_msg);
+        dumpfile=codecs.open(msg["Subject"]+".eml","w","utf-8");
+        dumpfile.write(msg.as_string());
+        dumpfile.close();
         try:
             self.smtp163.connect(self.email_smtp_addr,self.email_smtp_port);
             self.smtp163.login(self.email_from_addr,self.email_from_passwd);
@@ -113,11 +114,6 @@ class request_session:
             self.smtp163.close();
             print self.worker_name+" sending log email "+" success"
         except:
-            exception_msg=MIMEText(traceback.format_exc());
-            msg.attach(exception_msg);
-            dumpfile=codecs.open(msg["Subject"]+".eml","w","utf-8");
-            dumpfile.write(msg.as_string());
-            dumpfile.close();
             print self.worker_name+" sending log email "+" failure"
     def save_routine(self):
         print self.worker_name+" save routine begins"
@@ -157,11 +153,14 @@ class request_session:
         if(self.updated_number<100):
             print "weibo number less than 100, sleeping"
             sleep(900);
-            self.updated_number=0;
+        self.updated_number=0;
 
 
     def parse_time(self,today,weibo_ct):
-        time_stamp=weibo_ct.split(u"来自")[0];
+        if(weibo_ct.find(u"来自")!=-1):
+            time_stamp=weibo_ct.split(u"来自")[0];
+        else:
+            time_stamp=weibo_ct+" ";
         if(time_stamp.find(u"前")!=-1):
             #这里是几秒或者几分钟这种，直接忽略
             return None;
@@ -199,7 +198,7 @@ class request_session:
             return self.domain+next_page[0].get("href");
 
     def get_page(self,page_link):
-        sleep(0.5);
+        sleep(2);
         print self.worker_name+" get page "+page_link; 
         self.ss_cur_link=page_link;
         response=self.ss.get(self.ss_cur_link);
@@ -374,8 +373,8 @@ class request_session:
             output_file.write(json.dumps(the_data,ensure_ascii=False));
             output_file.close();
         this_log_time=datetime.now();
-        time_1_hour=timedelta(hours=1.0);
-        if(this_log_time-self.last_log_time>time_1_hour):
+        time_delta=timedelta(hours=0.1);
+        if(this_log_time-self.last_log_time>time_delta):
             self.save_routine();
             self.last_log_time=this_log_time;
     def filter_user_weibo(self,user_home,weibo_batch):
@@ -405,9 +404,14 @@ class request_session:
                     self.user_data[user_home]["weibo_num"]=0;
                     self.user_data[user_home]["nick"]=i["nick"];
             while True:
+                pre_number=self.weibo_total_num;
                 for i in fo_list:
                     per_user_weibo=self.get_weibo_user_lately(i["home"],self.user_data[i["home"]]["timestamp"]);
                     self.filter_user_weibo(i["home"],per_user_weibo);
+                self.save_routine();
+                if(self.weibo_total_num-pre_number<100):
+                    sleep(600);
+                
         except:
             self.send_email_except();
             return ;
