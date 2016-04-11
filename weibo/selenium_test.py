@@ -14,28 +14,28 @@ from lxml import html,etree
 import requests
 browser = webdriver.Firefox() 
 wait = ui.WebDriverWait(browser,10)
-cookie_file=open("weibo_cookie.json","r");
+
 total_pages = 0
 #browser.get("http://weibo.cn/")
 
 def login(username,password):
-    browser.find_element_by_link_text("登录").click()
-    wait.until(lambda browser: browser.find_element_by_xpath("//input[@name='mobile']"))
-    user = browser.find_element_by_xpath("//input[@name='mobile']")
-    user.clear()
-    user.send_keys(username)
-    psw = browser.find_element_by_xpath("//input[@type='password']")
-    psw.clear()
-    psw.send_keys(password)
-    verify_code = browser.find_element_by_xpath("//input[@name='code']")
-    if(verify_code):
-        sleep(10)
-    wait.until(lambda browser: browser.find_element_by_xpath("//input[@name='submit']"))
-    browser.find_element_by_xpath("//input[@name='submit']").click()
-    sleep(3)
-    browser.save_screenshot("code.png")
-    
-    #browser.find_element_by_xpath("//input[@name='submit']").click()
+	browser.find_element_by_link_text("登录").click()
+	wait.until(lambda browser: browser.find_element_by_xpath("//input[@name='mobile']"))
+	user = browser.find_element_by_xpath("//input[@name='mobile']")
+	user.clear()
+	user.send_keys(username)
+	psw = browser.find_element_by_xpath("//input[@type='password']")
+	psw.clear()
+	psw.send_keys(password)
+	verify_code = browser.find_element_by_xpath("//input[@name='code']")
+	if(verify_code):
+		sleep(30)
+	wait.until(lambda browser: browser.find_element_by_xpath("//input[@name='submit']"))
+	browser.find_element_by_xpath("//input[@name='submit']").click()
+	sleep(3)
+	#browser.save_screenshot("code.png")
+	
+	#browser.find_element_by_xpath("//input[@name='submit']").click()
 def parse_time(today,weibo_ct):
 	time_stamp=weibo_ct.split(u"来自")[0];
 	if(time_stamp.find(u"年")!=-1):
@@ -232,6 +232,9 @@ def get_weibo_user_lately(user_home,last_time):
 	return total_weibo;
 def get_real_homepage(user_home):
 	#从用户的主页获得用户的个人uid的url
+	info_icon=browser.find_element_by_link_text(u"资料");
+	if(info_icon.size()==0):
+		sleep(10);
 	info_url=browser.find_element_by_link_text(u"资料").get_attribute("href");
 	#/xxxxxx/info the xxxx is unique user id
 	user_id=join(info_url.split("/")[0:-1],"/");
@@ -265,16 +268,19 @@ def get_follower_page(follow_page):
 		follower_in_page.append(temp_user);
 	# it may not be the unique id 
 	return follower_in_page;
+
+
 	
 def main():
-	#browser.get("http://weibo.cn/");
-	#login("huangfeidian@live.cn","10311010")
-	browser.get("http://weibo.cn/404page");
-	cookie_str=join(cookie_file.readlines(),"\n");
-	cookie=json.loads(cookie_str);
-	for i in cookie:
-		browser.add_cookie(i);
 	browser.get("http://weibo.cn/");
+	login("kiwiberryeater@163.com","10311010")
+	cookie_file=open("kiwiberryeater@163.com.json","w");
+	#browser.get("http://weibo.cn/404page");
+	#cookie_str=join(cookie_file.readlines(),"\n");
+	#cookie=json.loads(cookie_str);
+	#for i in cookie:
+	#	browser.add_cookie(i);
+	#browser.get("http://weibo.cn/");
 	#browser.get("http://weibo.cn/")
 	#browser.get("http://weibo.cn/xiaomishouji")
 	#the_weibo_list=get_weibo_user_page("http://weibo.cn/xiaomishouji");
@@ -287,7 +293,7 @@ def main():
 	#for i in weibo_objects:
 	#	weibo_strings.append(i.get_json_dict());
 	#json_result=json.dumps(weibo_strings);
-	#cookie=list(browser.get_cookies());
-	#json_result=json.dumps(cookie);
-	#cookie_file.write(json_result);
+	cookie=list(browser.get_cookies());
+	json_result=json.dumps(cookie);
+	cookie_file.write(json_result);
 main()

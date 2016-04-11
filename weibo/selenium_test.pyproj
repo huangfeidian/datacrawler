@@ -6,8 +6,7 @@
     <ProjectGuid>6d96a37e-9911-4e11-aaac-153f4eb5eb50</ProjectGuid>
     <ProjectHome>
     </ProjectHome>
-    <StartupFile>
-    </StartupFile>
+    <StartupFile>selenium_test.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -24,6 +23,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="selenium_test.py" />
     <Compile Include="weibo.py" />
     <Compile Include="weibo_user.py">
       <SubType>Code</SubType>
