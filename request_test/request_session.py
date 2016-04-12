@@ -58,7 +58,7 @@ class request_session:
 		log_file_str=join(log_file.readlines(),"\n");
 		log_file.close();
 		log_config=json.loads(log_file_str);
-		self.weibo_total_num=log_config["total_num"];
+		self.weibo_total_num=log_config["weibo_total_num"];
 		user_file_name=log_config["user_file"];
 		user_file=open(user_file_name,"r");
 		user_file_str=join(user_file.readlines(),"\n");
@@ -138,12 +138,12 @@ class request_session:
 		log_data=dict();
 		log_data["worker_name"]=self.worker_name;
 		log_data["weibo_total_num"]=self.weibo_total_num;
-		log_data["log_time"]=self.last_log_time;
-
+		log_data["log_time"]=datetime.now().strftime(("%Y-%m-%d %H-%M-%S"));
+		
 		log_data["user_file"]=user_file_name;
 		log_data_str=json.dumps(log_data,ensure_ascii=False);
 		log_file_name=self.worker_name+"/"+self.worker_name+".json";
-		log_file=codecs.open(config_file_name,"w","utf-8");
+		log_file=codecs.open(log_file_name,"w","utf-8");
 		log_file.write(log_data_str);
 		log_file.close();
 		#os.chdir("..");
@@ -433,28 +433,3 @@ class request_session:
 	
 			
 
-def main():
-
-	proxies = {
-		#"http": "http://huangfeidian:10311010@127.0.0.1:1898",
-		#"https": "http://huangfeidian:10311010@127.0.0.1:1898",
-		};
-	headers={
-		"User-Agent":"Mozilla/5.0 (Windows NT 6.3; WOW64; rv:44.0) Gecko/20100101 Firefox/44.0",
-		"Accept":"*/*",
-		"Accept-Language": "zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3",
-		"Accept-Encoding": "gzip, deflate, br",
-		};
-	worker_name="kiwiberryeater@163.com";
-	cookie_file=open("kiwiberryeater@163.com.json","r");
-	cookie_str=join(cookie_file.readlines(),"\n");
-	weibo_cookies=json.loads(cookie_str);
-	email_file=open("email_config.json","r");
-	email_str=join(email_file.readlines(),"\n");
-	email_config=json.loads(email_str);
-	session=request_session();
-	session.set_log_config(worker_name);
-	session.set_email_config(email_config);
-	session.set_ss_config(proxies,headers,weibo_cookies);
-	session.run();
-main();
